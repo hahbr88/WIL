@@ -14,6 +14,9 @@ wil() {
   code "$filename"  # VS Code가 설치되어 있다면 바로 열림
 }
 ```
+3. Ctrl + O, Enter (저장), Ctrl + X (나가기)
+
+4. 터미널 종료 후 새로 켜거나 `source ~/.zshrc` 입력 (설정 적용)
 
 ---
 
