@@ -1,22 +1,8 @@
 # WIL(What I Learned)
 
-## ⚙️ Setting (md 파일 생성)
+## Setting (md 파일 생성)
 
-1. 터미널에 `nano ~/.zshrc` 입력
-
-2. 파일 맨 아래에 아래 내용 추가:
-
-```Bash
-# 매번 파일 만들기 귀찮을 때 쓰는 매크로
-wil() {
-  local filename="$(date +%Y-%m-%d)-$1.md"
-  touch "$filename"
-  code "$filename"  # VS Code가 설치되어 있다면 바로 열림
-}
-```
-3. Ctrl + O, Enter (저장), Ctrl + X (나가기)
-
-4. 터미널 종료 후 새로 켜거나 `source ~/.zshrc` 입력 (설정 적용)
+[보러가기](/Setting.md)
 
 ---
 
@@ -35,3 +21,15 @@ wil() {
 ## 2026-02-10
 
 - [DNS](2026-02-10/2026-02-10-DNS.md)
+
+---
+
+## 2025-02-12
+
+- [국가공인자격증](2026-02-12/2026-02-12-국가공인자격증.md)
+- [AWS](2026-02-12/2026-02-12-AWS.md)
+- [CKA](2026-02-12/2026-02-12-CKA.md)
+- [CCNA](2026-02-12/2026-02-12-CCNA.md)
+- [SQLD](2026-02-12/2026-02-12-SQLD.md)
+- [Ping](2026-02-12/2026-02-12-Ping.md)
+- [OSI 7 Layer.md](2026-02-12/2026-02-12-OSI_7Layer.md)
