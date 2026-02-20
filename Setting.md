@@ -6,30 +6,37 @@
 
 2. 파일 맨 아래에 아래 내용 추가:
 
-    ```bash
-        wil() {
-      # 1. 폴더명 (예: 2026-02)
-      local dir_name=$(date +%Y-%m-%d)
-      
-      # 2. 파일명 (예: 2026-02-09-주제.md)
-      local file_name=$(date +%Y-%m-%d)-$1.md
-      
-      # 3. 폴더가 없으면 생성 (-p 옵션으로 에러 방지)
-      mkdir -p "$dir_name"
-      
-      # 4. 해당 폴더 안에 파일 생성
-      touch "$dir_name/$file_name"
-      
-      echo "✅ Created: $dir_name/$file_name"
-      
-      # (선택사항) 바로 VS Code로 열고 싶다면 아래 주석 제거
-      # code "$dir_name/$file_name"
-    }
-    ```
+  ```bash
+  wil() {
+    # 1. 날짜 변수
+    local date_str=$(date +%Y-%m-%d)
 
-3. Ctrl + O, Enter (저장), Ctrl + X (나가기)
+    # 2. 폴더명 (날짜 기준)
+    local dir_name=$date_str
 
-4. 터미널 종료 후 새로 켜거나 `source ~/.zshrc` 입력 (설정 적용)
+    # 3. 파일명
+    local file_name=$date_str-$1.md
+
+    # 4. 폴더 없으면 생성
+    mkdir -p "$dir_name"
+    local file_path="$dir_name/$file_name"
+    
+    # 5. 파일이 없을 때만 생성 + 제목 작성
+    if [ ! -f "$file_path" ]; then
+      echo "# $date_str-$1" > "$file_path"
+      echo "Created: $file_path"
+    else
+      echo "File already exists: $file_path"
+    fi
+    
+    # (선택사항) 바로 VS Code로 열고 싶다면 아래 주석 제거
+    # code "$file_path"
+  }
+  ```
+
+1. Ctrl + O, Enter (저장), Ctrl + X (나가기)
+
+2. 터미널 종료 후 새로 켜거나 `source ~/.zshrc` 입력 (설정 적용)
 
 ---
 
@@ -59,30 +66,29 @@ notepad $PROFILE
 
 ```powershell
 function wil($topic) {
-    # 1. 날짜 변수 설정
-    $dateStr = Get-Date -Format "yyyy-MM-dd"
-    
-    # 2. 폴더 생성 (없으면 만들고, 있으면 넘어감)
-    if (!(Test-Path $dateStr)) {
-        New-Item -ItemType Directory -Path $dateStr | Out-Null
-    }
-    
-    # 3. 파일명 및 경로 설정
-    $fileName = "$dateStr-$topic.md"
-    $filePath = Join-Path -Path $dateStr -ChildPath $fileName
-    
-    # 4. 파일 생성 (이미 있으면 덮어쓰지 않음)
-    if (!(Test-Path $filePath)) {
-        New-Item -ItemType File -Path $filePath | Out-Null
-        Write-Host "✅ Created: $filePath" -ForegroundColor Green
-    } else {
-        Write-Host "ℹ️ File already exists: $filePath" -ForegroundColor Yellow
-    }
+  # 1. 날짜 변수 설정
+  $dateStr = Get-Date -Format "yyyy-MM-dd"
 
-    # 5. VS Code로 바로 열기 (설치되어 있다면)
-    # code $filePath
+  # 2. 폴더 생성 (없으면 만들고, 있으면 넘어감)
+  if (!(Test-Path $dateStr)) {
+      New-Item -ItemType Directory -Path $dateStr | Out-Null
+  }
+
+  # 3. 파일명 및 경로 설정
+  $fileName = "$dateStr-$topic.md"
+  $filePath = Join-Path -Path $dateStr -ChildPath $fileName
+
+  # 4. 파일 생성 (이미 있으면 덮어쓰지 않음)
+  if (!(Test-Path $filePath)) {
+      "# $dateStr-$topic" | Out-File -FilePath $filePath -Encoding utf8
+      Write-Host "Created: $filePath" -ForegroundColor Green
+  } else {
+      Write-Host "File already exists: $filePath" -ForegroundColor Yellow
+  }
+
+  # 5. VS Code로 바로 열기 (설치되어 있다면)
+  # code $filePath
 }
-
 ```
 
 ### 3. 저장 및 적용

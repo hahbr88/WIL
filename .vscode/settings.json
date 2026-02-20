@@ -1,6 +1,10 @@
 {
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
   "[markdown]": {
     "editor.defaultFormatter": "DavidAnson.vscode-markdownlint",
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
   }
 }
