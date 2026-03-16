@@ -1,8 +1,6 @@
 ﻿# 2026-03-12-Windows_Server_DNS_IIS_실습
 
-아래에 바로 WIL에 올릴 수 있도록 **Markdown 형식**으로 정리해드리겠습니다.
-
-# Windows Server 2022 환경에서 PowerShell 기반 내부 DNS + IIS 연동 실습 정리
+Windows Server 2022 환경에서 PowerShell 기반 내부 DNS + IIS 연동 실습 정리
 
 ## 1. 실습 개요
 
@@ -12,21 +10,21 @@
 
 - `FIRST (192.168.111.10)` 를 DNS 서버로 구성
 - `SECOND (192.168.111.20)` 를 IIS 웹 서버로 구성
-- 내부 도메인 `www.local.admin` 으로 웹 서버 접속 가능하게 설정
+- 내부 도메인 `www.hahbr.com` 으로 웹 서버 접속 가능하게 설정
 - 외부 인터넷 도메인도 해석 가능하도록 Forwarder 설정
 
-즉, 사용자는 브라우저에서 IP 주소가 아닌 도메인 이름 `http://www.local.admin` 으로 웹 서버에 접속할 수 있어야 한다.
+즉, 사용자는 브라우저에서 IP 주소가 아닌 도메인 이름 `http://www.hahbr.com` 으로 웹 서버에 접속할 수 있어야 한다.
 
 ---
 
 ## 2. 실습 환경
 
-| 역할 | 서버명 | IP 주소 | 설명 |
-|---|---|---:|---|
-| DNS 서버 | FIRST | 192.168.111.10 | 내부 DNS 질의 처리 |
-| IIS 서버 | SECOND | 192.168.111.20 | 웹 서비스 제공 |
-| 게이트웨이 | - | 192.168.111.2 | 외부 통신용 |
-| 네트워크 대역 | - | 192.168.111.0/24 | 내부 실습망 |
+|역할|서버명|IP 주소|설명|
+|---|---|---|---|
+|DNS 서버|FIRST|192.168.111.10|내부 DNS 질의 처리|
+|IIS 서버|SECOND|192.168.111.20|웹 서비스 제공|
+|게이트웨이|-|192.168.111.2|외부 통신용|
+|네트워크 대역|-|192.168.111.0/24|내부 실습망|
 
 ---
 
@@ -70,19 +68,29 @@ DNS 서버를 직접 운영하려면, 최소한 해당 서버가 **자기 자신
 Get-WindowsFeature DNS
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 이 명령어는 Windows Server에 특정 역할(Role)이나 기능(Feature)이 설치되어 있는지 확인할 때 사용한다.
-
-실습 당시 결과는 다음과 같았다.
 
 ```text
 [X] DNS Server   Installed
 ```
 
-즉, DNS 서버 역할은 이미 설치된 상태였다.
+위와 같이 나오면, DNS 서버 역할은 이미 설치된 상태이다.
 
-### 알게 된 점
+만약 아래와 같으면
+
+```text
+[ ] DNS Server   Available
+```
+
+설치가 안된것이니 아래 명령어를 입력하여 설차한다.
+
+```ps
+Install-WindowsFeature DNS -IncludeManagementTools
+```
+
+**알게 된 점**
 
 DNS 서버가 동작하려면 단순히 네트워크가 된다고 끝이 아니라, **Windows Server에 DNS 역할 자체가 설치되어 있어야 한다.**
 
@@ -107,7 +115,7 @@ Get-NetFirewallRule | Where-Object {$_.DisplayGroup -like "*DNS*"} |
 Select-Object DisplayName, DisplayGroup, Enabled, Direction, Action
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 - `Get-NetFirewallRule`: 방화벽 규칙 전체 조회
 - `Where-Object`: 조건에 맞는 규칙만 필터링
@@ -123,7 +131,7 @@ Select-Object DisplayName, DisplayGroup, Enabled, Direction, Action
 - `모든 송신(UDP)`
 - `모든 송신(TCP)`
 
-### 알게 된 점
+**알게 된 점**
 
 DNS 서버는 단순히 UDP만 쓰는 것이 아니라, 상황에 따라 TCP도 사용한다.
 따라서 **TCP/UDP 53 포트가 모두 허용되어 있어야 안정적으로 동작**한다.
@@ -145,12 +153,12 @@ Status   Name   DisplayName
 Running  DNS    DNS Server
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 DNS 역할이 설치되어 있어도, 서비스가 중지되어 있으면 요청을 처리할 수 없다.
 그래서 **역할 설치 여부와 서비스 실행 여부는 별도로 확인해야 한다.**
 
-### 알게 된 점
+**알게 된 점**
 
 `Installed` 와 `Running` 은 다르다.
 
@@ -178,14 +186,14 @@ UDP    127.0.0.1:53
 UDP    192.168.111.10:53
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 - `netstat -ano`: 현재 열려 있는 포트와 프로세스 정보 확인
 - `findstr :53`: 53번 포트만 필터링
 
 즉, **DNS 서비스가 TCP/UDP 53번에서 실제로 대기 중인지 확인하기 위해** 사용했다.
 
-### 알게 된 점
+**알게 된 점**
 
 - `Get-Service DNS` 가 Running 이어도
 - 실제 포트 리스닝 상태까지 확인해야 더 정확하다.
@@ -211,13 +219,13 @@ Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses 192.168.
 Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses 127.0.0.1
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 - `Set-DnsClientServerAddress`: NIC의 DNS 서버 주소 설정
 - `-InterfaceAlias "Ethernet0"`: 설정할 네트워크 어댑터 지정
 - `-ServerAddresses 192.168.111.10`: 새 DNS 서버 주소 지정
 
-### 알게 된 점
+**알게 된 점**
 
 DNS 서버 자신이 자기 DNS를 보지 않으면, 내부 존을 만들더라도 해당 서버가 그 존을 기준으로 질의하지 않을 수 있다.
 따라서 **DNS 서버 본인도 자기 자신을 DNS 서버로 설정하는 것이 핵심**이다.
@@ -232,12 +240,12 @@ DNS 서버 자신이 자기 DNS를 보지 않으면, 내부 존을 만들더라�
 Add-DnsServerForwarder -IPAddress 8.8.8.8,1.1.1.1
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 내부 DNS 서버는 자신이 직접 관리하는 존에 대해서만 기본적으로 잘 응답한다.
 예를 들어:
 
-- `www.local.admin` → 내부 존이므로 직접 응답 가능
+- `www.hahbr.com` → 내부 존이므로 직접 응답 가능
 - `google.com` → 내부 존이 아니므로 직접 모름
 
 이때 Forwarder를 설정하면, 내부 DNS 서버가 모르는 외부 도메인은 지정한 외부 DNS 서버에 대신 물어볼 수 있다.
@@ -247,7 +255,7 @@ Add-DnsServerForwarder -IPAddress 8.8.8.8,1.1.1.1
 - `8.8.8.8` → Google Public DNS
 - `1.1.1.1` → Cloudflare DNS
 
-### 알게 된 점
+**알게 된 점**
 
 Forwarder는 **내부 존 정보가 없는 외부 도메인을 대신 조회해 주는 중계 역할**이다.
 즉, DNS 서버가 모르는 질의를 상위 또는 외부 DNS에 전달하는 구조다.
@@ -256,17 +264,17 @@ Forwarder는 **내부 존 정보가 없는 외부 도메인을 대신 조회해 
 
 ## 11. 정방향 조회 영역(Forward Lookup Zone) 생성
 
-내부 도메인 `local.admin` 을 관리하기 위해 정방향 존을 생성했다.
+내부 도메인 `hahbr.com` 을 관리하기 위해 정방향 존을 생성했다.
 
 ```powershell
-Add-DnsServerPrimaryZone -Name "local.admin" -ZoneFile "local.admin.dns"
+Add-DnsServerPrimaryZone -Name "hahbr.com" -ZoneFile "hahbr.com.dns"
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 - `Add-DnsServerPrimaryZone`: 기본(Primary) 존 생성
-- `-Name "local.admin"`: 생성할 도메인 이름
-- `-ZoneFile "local.admin.dns"`: 존 정보를 저장할 파일 이름
+- `-Name "hahbr.com"`: 생성할 도메인 이름
+- `-ZoneFile "hahbr.com.dns"`: 존 정보를 저장할 파일 이름
 
 ### 정방향 존이란?
 
@@ -274,11 +282,11 @@ Add-DnsServerPrimaryZone -Name "local.admin" -ZoneFile "local.admin.dns"
 
 예를 들어:
 
-- `www.local.admin` → `192.168.111.20`
+- `www.hahbr.com` → `192.168.111.20`
 
 같은 해석을 담당한다.
 
-### 알게 된 점
+**알게 된 점**
 
 DNS의 핵심 기능 중 하나는 **사람이 읽기 쉬운 이름을 IP 주소로 바꾸는 것**이고, 이 역할을 정방향 존이 담당한다.
 
@@ -306,20 +314,20 @@ Add-DnsServerPrimaryZone -NetworkID "192.168.111.0/24"
 Add-DnsServerPrimaryZone -NetworkID "192.168.111.0/24" -ZoneFile "111.168.192.in-addr.arpa.dns"
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 역방향 존은 **IP 주소 → 이름** 을 확인할 때 사용된다.
 
 예를 들어:
 
-- `192.168.111.20` → `www.local.admin`
+- `192.168.111.20` → `www.hahbr.com`
 
 ### 왜 처음 명령은 실패했는가
 
-`-NetworkID` 만 넣으면 PowerShell이 어떤 방식의 존을 만들지 모호하게 판단할 수 있다.
-그래서 파일 기반 존으로 만들겠다는 의미로 `-ZoneFile` 을 함께 지정해 주었다.
+내 실습 환경에서는 `-NetworkID` 만 사용했을 때 파라미터 집합 관련 오류가 발생했다.
+그래서 파일 기반 존으로 만들겠다는 의미로 `-ZoneFile` 을 함께 지정해 해결했다.
 
-### 알게 된 점
+**알게 된 점**
 
 PowerShell 명령은 단순히 문법만 아는 것이 아니라, **어떤 매개변수 조합이 하나의 파라미터 집합을 이루는지 이해해야 한다.**
 
@@ -327,24 +335,24 @@ PowerShell 명령은 단순히 문법만 아는 것이 아니라, **어떤 매�
 
 ## 13. A 레코드 생성
 
-`SECOND` 서버의 IIS 웹 사이트를 `www.local.admin` 으로 접속하기 위해 A 레코드를 추가했다.
+`SECOND` 서버의 IIS 웹 사이트를 `www.hahbr.com` 으로 접속하기 위해 A 레코드를 추가했다.
 
 ```powershell
-Add-DnsServerResourceRecordA -Name "www" -ZoneName "local.admin" -IPv4Address "192.168.111.20"
+Add-DnsServerResourceRecordA -Name "www" -ZoneName "hahbr.com" -IPv4Address "192.168.111.20"
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 - `Add-DnsServerResourceRecordA`: A 레코드 추가
 - `-Name "www"`: 호스트 이름
-- `-ZoneName "local.admin"`: 어느 존에 추가할지
+- `-ZoneName "hahbr.com"`: 어느 존에 추가할지
 - `-IPv4Address "192.168.111.20"`: 연결할 대상 IP
 
 즉, 최종적으로 다음 의미가 된다.
 
-- `www.local.admin` → `192.168.111.20`
+- `www.hahbr.com` → `192.168.111.20`
 
-### 알게 된 점
+**알게 된 점**
 
 존만 만들어서는 이름 해석이 되지 않는다.
 **존 안에 실제 호스트 레코드가 있어야 질의에 응답할 수 있다.**
@@ -356,18 +364,18 @@ Add-DnsServerResourceRecordA -Name "www" -ZoneName "local.admin" -IPv4Address "1
 역방향 조회도 가능하게 하기 위해 PTR 레코드를 추가했다.
 
 ```powershell
-Add-DnsServerResourceRecordPtr -Name "20" -ZoneName "111.168.192.in-addr.arpa" -PtrDomainName "www.local.admin"
+Add-DnsServerResourceRecordPtr -Name "20" -ZoneName "111.168.192.in-addr.arpa" -PtrDomainName "www.hahbr.com"
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 PTR 레코드는 IP 주소 마지막 옥텟을 기준으로 역방향 이름 해석을 정의한다.
 
 - `192.168.111.20`
 - Reverse Zone: `111.168.192.in-addr.arpa`
-- `20` → `www.local.admin`
+- `20` → `www.hahbr.com`
 
-### 알게 된 점
+**알게 된 점**
 
 정방향 조회(A 레코드)와 역방향 조회(PTR 레코드)는 서로 다른 목적을 가진다.
 
@@ -384,13 +392,15 @@ PTR 레코드는 IP 주소 마지막 옥텟을 기준으로 역방향 이름 해
 Get-DnsServerZone
 ```
 
-레코드 생성 후에는 아래 명령으로 `local.admin` 존 내부 레코드를 확인했다.
+레코드 생성 후에는 아래 명령으로 `hahbr.com` 존 내부 레코드를 확인했다.
 
 ```powershell
-Get-DnsServerResourceRecord -ZoneName "local.admin"
+Get-DnsServerResourceRecord -ZoneName "hahbr.com"
 ```
 
-### 왜 이 명령어를 썼는가
+![alt text](image-1.png)
+
+**왜 이 명령어를 썼는가**
 
 설정 명령을 실행한 뒤에는 항상 실제 반영 여부를 확인해야 한다.
 특히 DNS는 설정 직후 결과가 눈으로 바로 보이지 않는 경우가 많아서, **존과 레코드가 정확히 생성되었는지 별도 확인하는 습관이 중요**하다.
@@ -402,30 +412,30 @@ Get-DnsServerResourceRecord -ZoneName "local.admin"
 `FIRST` 서버에서 다음 명령으로 정방향 이름 해석을 확인했다.
 
 ```powershell
-Resolve-DnsName www.local.admin
+Resolve-DnsName www.hahbr.com
 ```
 
 또는
 
 ```cmd
-nslookup www.local.admin
+nslookup www.hahbr.com
 ```
 
 정상 결과:
 
 ```text
-이름:    www.local.admin
+이름:    www.hahbr.com
 Address: 192.168.111.20
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 - `Resolve-DnsName`: Windows PowerShell 기반 DNS 질의 도구
 - `nslookup`: 전통적인 DNS 질의 도구
 
 둘 다 이름이 올바르게 IP로 해석되는지 확인할 때 사용한다.
 
-### 알게 된 점
+**알게 된 점**
 
 `Resolve-DnsName` 과 `nslookup` 은 둘 다 DNS 확인 용도지만,
 PowerShell 환경에서는 `Resolve-DnsName` 이 좀 더 스크립트 친화적이다.
@@ -439,7 +449,7 @@ DNS 연동 대상 웹 서버인 `SECOND (192.168.111.20)` 에 IIS를 설치했�
 설치 여부 확인:
 
 ```powershell
-Get-WindowsFeature Web-Server
+ 
 ```
 
 설치:
@@ -448,12 +458,12 @@ Get-WindowsFeature Web-Server
 Install-WindowsFeature Web-Server -IncludeManagementTools
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 - `Web-Server` 는 IIS 역할 이름
 - `-IncludeManagementTools` 는 관리 도구까지 함께 설치
 
-### 알게 된 점
+**알게 된 점**
 
 Windows Server에서는 GUI 없이도 PowerShell만으로 웹 서버 역할 설치가 가능하다.
 
@@ -469,23 +479,23 @@ IIS 설치 후 기본 경로인 `C:\inetpub\wwwroot` 에 테스트용 HTML 파�
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>www.local.admin</title>
+    <title>www.hahbr.com</title>
 </head>
 <body>
     <h1>SECOND IIS 서버입니다</h1>
-    <p>Host: www.local.admin</p>
+    <p>Host: www.hahbr.com</p>
     <p>Server IP: 192.168.111.20</p>
 </body>
 </html>
 '@ | Set-Content -Path C:\inetpub\wwwroot\index.html -Encoding UTF8
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 PowerShell의 here-string(`@' ... '@`) 을 사용하면 여러 줄의 HTML을 한 번에 문자열로 만들 수 있다.
 그 결과를 `Set-Content` 로 파일로 저장해 웹 페이지를 생성했다.
 
-### 알게 된 점
+**알게 된 점**
 
 PowerShell은 단순 명령 실행 도구가 아니라, **텍스트 파일 생성과 배포 작업에도 매우 유용하다.**
 
@@ -499,13 +509,13 @@ Import-Module WebAdministration
 Get-Website
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 - `W3SVC`: IIS 웹 서비스
 - `Import-Module WebAdministration`: IIS 관리용 PowerShell 모듈 로드
 - `Get-Website`: 현재 IIS 사이트 상태 확인
 
-### 알게 된 점
+**알게 된 점**
 
 IIS도 DNS와 마찬가지로:
 
@@ -522,7 +532,7 @@ IIS도 DNS와 마찬가지로:
 다음 명령으로 사이트 바인딩을 추가할 수 있다.
 
 ```powershell
-New-WebBinding -Name "Default Web Site" -IPAddress "*" -Port 80 -HostHeader "www.local.admin"
+New-WebBinding -Name "Default Web Site" -IPAddress "*" -Port 80 -HostHeader "www.hahbr.com"
 ```
 
 다만 이번 실습에서는 IP 접속 시 기본 사이트가 이미 열리는 것을 확인했다.
@@ -548,11 +558,14 @@ New-WebBinding -Name "Default Web Site" -IPAddress "*" -Port 80 -HostHeader "www
 
 예:
 
-- `www.local.admin`
-- `app.local.admin`
-- `intra.local.admin`
+- `www.hahbr.com`
+- `app.hahbr.com`
+- `intra.hahbr.com`
 
-### 알게 된 점
+기존 기본 바인딩 `*:80:` 이 그대로 남아 있으면 IP 접속은 계속 가능하다.
+도메인 기반으로만 구분하고 싶다면 기본 바인딩을 제거하거나, 사이트를 분리해서 각 Host Header 에 맞게 바인딩을 구성해야 한다.
+
+**알게 된 점**
 
 바인딩은 단순 접속 허용 설정이 아니라,
 **어떤 요청을 어떤 사이트가 처리할지 결정하는 기준**이다.
@@ -561,12 +574,12 @@ New-WebBinding -Name "Default Web Site" -IPAddress "*" -Port 80 -HostHeader "www
 
 ## 21. SECOND 서버의 DNS 서버 주소 변경
 
-처음 `SECOND` 에서 `nslookup www.local.admin` 을 실행했을 때 다음처럼 나왔다.
+처음 `SECOND` 에서 `nslookup www.hahbr.com` 을 실행했을 때 다음처럼 나왔다.
 
 ```text
 서버:    UnKnown
 Address:  192.168.111.2
-*** UnKnown이(가) www.local.admin을(를) 찾을 수 없습니다. Non-existent domain
+*** UnKnown이(가) www.hahbr.com을(를) 찾을 수 없습니다. Non-existent domain
 ```
 
 즉, `SECOND` 는 아직 `FIRST` 가 아니라 게이트웨이 측 DNS를 사용하고 있었다.
@@ -583,11 +596,11 @@ Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses 192.168.
 ipconfig /flushdns
 ```
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 웹 서버도 내부 도메인을 해석하려면 **자기 DNS 서버를 FIRST로 바라봐야** 한다.
 
-### 알게 된 점
+**알게 된 점**
 
 DNS 서버를 구축해도, 클라이언트나 서버들이 그 DNS를 사용하도록 설정하지 않으면 실제로는 아무 의미가 없다.
 
@@ -598,18 +611,18 @@ DNS 서버를 구축해도, 클라이언트나 서버들이 그 DNS를 사용하
 `FIRST` 에서 다음 명령으로 DNS와 웹 연결을 함께 점검했다.
 
 ```powershell
-nslookup www.local.admin
-Test-NetConnection www.local.admin -Port 80
-Get-DnsServerResourceRecord -ZoneName "local.admin"
+nslookup www.hahbr.com
+Test-NetConnection www.hahbr.com -Port 80
+Get-DnsServerResourceRecord -ZoneName "hahbr.com"
 ```
 
 결과:
 
-- `www.local.admin` → `192.168.111.20`
+- `www.hahbr.com` → `192.168.111.20`
 - `TcpTestSucceeded : True`
 - `www` A 레코드 존재
 
-### 왜 이 명령어를 썼는가
+**왜 이 명령어를 썼는가**
 
 이 3개는 각각 다른 계층을 확인한다.
 
@@ -617,7 +630,7 @@ Get-DnsServerResourceRecord -ZoneName "local.admin"
 - `Test-NetConnection -Port 80` → 네트워크/포트 연결
 - `Get-DnsServerResourceRecord` → 실제 DNS 설정 존재 여부
 
-### 알게 된 점
+**알게 된 점**
 
 문제를 진단할 때는 한 번에 “안 된다”로 묶지 말고,
 다음을 분리해서 봐야 한다.
@@ -628,13 +641,13 @@ Get-DnsServerResourceRecord -ZoneName "local.admin"
 
 ---
 
-## 23. 브라우저에서 Bing 검색으로 넘어간 이유
+## 23. 브라우저에서 검색으로 넘어간 이유
 
-브라우저 주소창에 `www.local.admin` 만 입력했을 때 Bing 검색으로 넘어가는 현상이 있었다.
+브라우저 주소창에 `www.hahbr.com` 만 입력했을 때 검색으로 넘어가는 현상이 있었다.
 
 실제로는 주소창이 다음처럼 처리된 것이었다.
 
-- `https://www.bing.com/search?q=www.local.admin`
+- `https://www.bing.com/search?q=www.hahbr.com`
 
 ### 왜 이런 일이 생겼는가
 
@@ -645,17 +658,18 @@ Get-DnsServerResourceRecord -ZoneName "local.admin"
 
 중 하나로 해석한다.
 
-내부용 도메인은 경우에 따라 URL이 아니라 검색어로 판단될 수 있다.
+이 동작은 브라우저 종류, 기본 검색 엔진, HTTPS 우선 정책에 따라 달라질 수 있다.
+이번 실습 환경에서는 `www.hahbr.com` 만 입력했을 때 URL이 아니라 검색어로 처리되었다.
 
 ### 해결 방법
 
-브라우저 주소창에 반드시 아래처럼 입력해야 한다.
+재현성 있게 테스트하려면 주소창에 아래처럼 프로토콜까지 포함해 입력하는 것이 안전하다.
 
 ```text
-http://www.local.admin
+http://www.hahbr.com
 ```
 
-### 알게 된 점
+**알게 된 점**
 
 내부 도메인 테스트 시에는 단순 이름만 입력하지 말고,
 **`http://` 를 명시해서 URL임을 브라우저에 확실히 알려주는 것이 안전하다.**
@@ -670,15 +684,15 @@ http://www.local.admin
 2. `FIRST` 의 DNS 서버 주소를 자기 자신으로 변경
 3. DNS 서비스, 방화벽, 53번 포트 점검
 4. Forwarder 설정으로 외부 도메인 질의 가능하게 구성
-5. `local.admin` 정방향 존 생성
+5. `hahbr.com` 정방향 존 생성
 6. `192.168.111.0/24` 역방향 존 생성
-7. `www.local.admin -> 192.168.111.20` A 레코드 생성
-8. `192.168.111.20 -> www.local.admin` PTR 레코드 생성
+7. `www.hahbr.com -> 192.168.111.20` A 레코드 생성
+8. `192.168.111.20 -> www.hahbr.com` PTR 레코드 생성
 9. `SECOND` 에 IIS 설치
 10. `SECOND` 의 기본 페이지 생성
 11. `SECOND` 의 DNS 서버 주소를 `FIRST` 로 변경
 12. `FIRST` 와 `SECOND` 에서 `nslookup`, `Test-NetConnection` 으로 검증
-13. 브라우저에서 `http://www.local.admin` 으로 접속
+13. 브라우저에서 `http://www.hahbr.com` 으로 접속
 
 ---
 
@@ -714,7 +728,7 @@ DNS 서버를 잘 만들어도, 다른 서버나 클라이언트가 그 DNS를 �
 
 ### 5) 브라우저는 내부 도메인을 검색어로 처리할 수 있다
 
-따라서 테스트할 때는 항상 `http://www.local.admin` 처럼 프로토콜까지 명시하는 것이 좋다.
+따라서 테스트할 때는 항상 `http://www.hahbr.com` 처럼 프로토콜까지 명시하는 것이 좋다.
 
 ---
 
