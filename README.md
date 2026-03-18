@@ -142,3 +142,9 @@
 ## 2026-03-17
 
 - [Windows Server WDS](/2026-03-17/2026-03-17-Windows_Server_WDS.md)
+
+---
+
+## 2026-03-18
+
+- [Windows Server BitLocker](/2026-03-18/2026-03-18-Windows_Server_BitLocker.md)
