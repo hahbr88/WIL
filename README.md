@@ -148,3 +148,11 @@
 ## 2026-03-18
 
 - [Windows Server BitLocker](/2026-03-18/2026-03-18-Windows_Server_BitLocker.md)
+
+---
+
+## 2026-03-20
+
+- [Windows Server AD DC](/2026-03-20/2026-03-20-Windows_Server_AD_DC.md)
+
+---
