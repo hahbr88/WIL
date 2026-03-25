@@ -168,3 +168,9 @@
 - [Windows_Server_그룹정책의_구성과_운영](/2026-03-24/2026-03-24-Windows_Server_그룹정책의_구성과_운영.md)
 - [Windows_Server_파일서버](/2026-03-24/2026-03-24-Windows_Server_파일서버.md)
 
+---
+
+## 2026-03-25
+
+- [Active_Directory_복제_장애_진단_및_DNS_이중화](/2026-03-25/2026-03-25-Active_Directory_복제_장애_진단_및_DNS_이중화.md)
+
